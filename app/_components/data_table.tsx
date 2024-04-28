@@ -1,20 +1,8 @@
 "use client";
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-} from "@tanstack/react-table";
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from "@tanstack/react-table";
 import { DataTablePagination } from "./data-table-pagination";
 
 interface DataTableProps<TData, TValue> {
@@ -29,9 +17,18 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
+     // TASK : Make first 2 columns (i.e. checkbox and task id) sticky
+     // TASK : Make header columns resizable
+    const [columnWidths, setColumnWidths] = useState<{ [key: string]: string }>({});
 
-    // TASK : Make first 2 columns (i.e. checkbox and task id) sticky
-    // TASK : Make header columns resizable
+    const handleResize = (event: React.MouseEvent<HTMLDivElement>, columnId: string) => {
+        const tableHeaderRect = event.currentTarget.getBoundingClientRect();
+        const newWidth = `${event.clientX - tableHeaderRect.left}px`;
+        setColumnWidths((prevWidths) => ({
+            ...prevWidths,
+            [columnId]: newWidth,
+        }));
+    };
 
     return (
         <div className="space-y-4">
@@ -40,18 +37,27 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    return (
-                                        <TableHead key={header.id} colSpan={header.colSpan}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                      header.column.columnDef.header,
-                                                      header.getContext(),
-                                                  )}
-                                        </TableHead>
-                                    );
-                                })}
+                                {headerGroup.headers.map((header, index) => (
+                                    <TableHead
+                                        key={header.id}
+                                        style={{
+                                            width: columnWidths[header.id] || "auto",
+                                            position: index < 2 ? "sticky" : "static",
+                                            left: index === 0 ? 0 : (index === 1 ? "500px" : "unset"),
+                                        }}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={() => setColumnWidths({})}
+                                        draggable
+                                        onDrag={(e) => handleResize(e, header.id)}
+                                    >
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext(),
+                                            )}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         ))}
                     </TableHeader>
